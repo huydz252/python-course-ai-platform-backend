@@ -1,73 +1,96 @@
 import os
-from typing import Optional
+from datetime import datetime
 import google.generativeai as genai
 from sqlalchemy.orm import Session
-from fastapi import HTTPException, status
-from app.models import Lesson
-from app.models import LessonTranscript
+from fastapi import HTTPException
+from app.models import AIChatSession, AIChatMessage
+from app.schemas.chatbot import ChatRequest
 
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-GEMINI_TRANSCRIBE_MODEL= os.getenv("GEMINI_TRANSCRIBE_MODEL")
+GEMINI_TRANSCRIBE_MODEL = os.getenv("GEMINI_TRANSCRIBE_MODEL")
 genai.configure(api_key=GEMINI_API_KEY)
 
 class ChatbotService:
     
     @staticmethod
-    def get_ai_response(lesson_id: Optional[int], message: str, db: Session) -> str:
-        """
-        Xử lý logic giao tiếp với mô hình AI (Gemini) để sinh ra câu trả lời cho học viên.
+    async def get_ai_stream_response(request: ChatRequest, user_id: int, db: Session):
+        message = request.message
+        lesson_id = request.lesson_id
+        course_id = request.course_id
+        session_id = request.session_id
 
-        Hàm này sẽ lấy nội dung bài học (transcript) từ database để làm ngữ cảnh, 
-        kết hợp với câu hỏi của học viên để tạo ra một Prompt hoàn chỉnh và gửi lên AI.
+        # 1. Xử lý Session & Lưu tin nhắn User (Giữ nguyên logic cũ)
+        if not session_id:
+            new_session = AIChatSession(user_id=user_id, course_id=course_id, lesson_id=lesson_id, title=message[:50])
+            db.add(new_session)
+            db.commit()
+            db.refresh(new_session)
+            session_id = new_session.id
+        else:
+            existing_session = db.query(AIChatSession).filter(AIChatSession.id == session_id).first()
+            if existing_session:
+                existing_session.updated_at = datetime.utcnow()
+                db.commit()
 
-        Args:
-            lesson_id (Optional[int]): ID của bài học hiện tại. Nếu = None thì không lấy transcript.
-            message (str): Nội dung câu hỏi mà học viên nhập vào từ giao diện.
-            db (Session): Phiên kết nối cơ sở dữ liệu SQLAlchemy.
+        user_msg = AIChatMessage(session_id=session_id, sender="user", message_text=message)
+        db.add(user_msg)
+        db.commit()
 
-        Returns:
-            str: Trả về chuỗi văn bản (text) là câu trả lời do AI sinh ra.
-
-        Raises:
-            HTTPException: Ném ra lỗi 500 nếu mất kết nối mạng, sai API Key, hoặc Google API bị lỗi.
-        """
-        
-        # promt gốc - ko transcript
-        system_context = """
-        Bạn là một chuyên gia lập trình Python. Hãy trả lời các câu hỏi của người dùng 
-        một cách chính xác, ngắn gọn và có kèm ví dụ code minh họa nếu cần.
-        """
-        
-        if lesson_id is not None:
-            lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
-            if not lesson:
-                raise HTTPException(status_code=404, detail="Không tìm thấy bài học!")
-            
-            # Sửa lại logic query cho đúng với lesson_id
-            lesson_record = db.query(LessonTranscript).filter(LessonTranscript.lesson_id == lesson_id).first()
-            if not lesson_record:
-                raise HTTPException(status_code=404, detail="Không tìm thấy Transcripts của bài học này!")
-            
-            lesson_transcript = lesson_record.transcript_text
-            if not lesson_transcript:
-                raise HTTPException(status_code=404, detail="Nội dung Transcripts đang trống!")
-            
-            # ghi đè lại system_context (có transcript)
-            system_context = f"""
-            Bạn là một trợ lý AI chuyên giảng dạy lập trình thân thiện.
-            Học viên đang hỏi về bài học có nội dung như sau: "{lesson_transcript}"
-            Hãy bám sát nội dung này để trả lời.
-            """
-            
+        system_context = "Bạn là một chuyên gia lập trình Python, nhưng nếu người dùng hỏi những cầu hỏi không liên quan đến python hay lập trình thì hãy trả lời một cách bình thường (không liên quan đến lập trình). Hãy trả lời ngắn gọn, súc tích và dễ hiểu!"
         full_prompt = f"{system_context}\n\nCâu hỏi: {message}"
-        
-        try:
-            model = genai.GenerativeModel(GEMINI_TRANSCRIBE_MODEL)
-            response = model.generate_content(full_prompt)
+
+        # 3. Hàm generator để stream chữ từ Gemini
+        async def event_generator():
+            full_reply = ""
+            try:
+                model = genai.GenerativeModel(GEMINI_TRANSCRIBE_MODEL)
+                # Bật stream=True để nhận phản hồi theo từng cụm từ
+                response = await model.generate_content_async(full_prompt, stream=True)
+                
+                async for chunk in response:
+                    if chunk.text:
+                        full_reply += chunk.text
+                        # Gửi từng mảnh text qua stream
+                        yield chunk.text
+
+                # Sau khi stream xong, lưu toàn bộ câu trả lời của AI vào Database
+                ai_msg = AIChatMessage(
+                    session_id=session_id,
+                    sender="assistant",
+                    message_text=full_reply,
+                    model_name=GEMINI_TRANSCRIBE_MODEL
+                )
+                db.add(ai_msg)
+                db.commit()
+
+            except Exception as e:
+                db.rollback()
+                yield f"\n[Lỗi kết nối AI: {str(e)}]"
+
+        return session_id, event_generator()
             
-            return response.text
-        except Exception as e:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Lỗi kết nối với Trợ lý AI: {str(e)}"
-            )
+    @staticmethod
+    def get_user_sessions(user_id: int, db: Session):
+        """Lấy danh sách lịch sử chat của user"""
+        return db.query(AIChatSession)\
+                 .filter(AIChatSession.user_id == user_id)\
+                 .order_by(AIChatSession.updated_at.desc())\
+                 .all()
+
+    @staticmethod
+    def get_session_messages(session_id: int, user_id: int, db: Session):
+        """Lấy danh sách tin nhắn thuộc về 1 session, có check quyền bảo mật"""
+        # Kiểm tra xem session có tồn tại và có phải của user này không
+        session = db.query(AIChatSession).filter(
+            AIChatSession.id == session_id, 
+            AIChatSession.user_id == user_id
+        ).first()
+        
+        if not session:
+            raise HTTPException(status_code=403, detail="Không có quyền truy cập hoặc cuộc trò chuyện không tồn tại!")
+
+        # Nếu hợp lệ thì mới query tin nhắn
+        return db.query(AIChatMessage)\
+                 .filter(AIChatMessage.session_id == session_id)\
+                 .order_by(AIChatMessage.created_at.asc())\
+                 .all()

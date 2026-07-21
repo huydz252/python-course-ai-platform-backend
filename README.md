@@ -17,10 +17,4 @@ The seed creates/updates 3 published courses, their sections, lessons, demo vide
 cd backend
 npm run dev
 ```
-
-## Run frontend
-
-```bash
-cd frontend
-npm run dev
 ```

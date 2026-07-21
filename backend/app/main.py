@@ -52,7 +52,7 @@ app.include_router(users_router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(progress_router, prefix="/api/v1/my", tags=["Progress"])
 app.include_router(activities_router, prefix="/api/v1/profile", tags=["Activities"])
 
-app.include_router(chatbot_router, prefix="/api/v1/chatbot", tags=["AI - Chatbot"])
+app.include_router(chatbot_router, prefix="/api/v1/chatbot", tags=["AI Assistant"])
 
 uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "storage", "uploads")
 os.makedirs(uploads_dir, exist_ok=True)
