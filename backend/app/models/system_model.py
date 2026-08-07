@@ -1,6 +1,6 @@
 import enum
 from sqlalchemy import (
-    Column, ForeignKey, BigInteger, Integer, String, Enum, Boolean, DateTime, Text, UniqueConstraint, text
+    Column, ForeignKey, func, BigInteger, Integer, String, Enum, Boolean, DateTime, Text, UniqueConstraint, text
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -46,9 +46,9 @@ class LessonProgress(Base):
     is_completed = Column(Boolean, default=False)
     completed_at = Column(DateTime, nullable=True)
     
-    last_watched_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+    last_watched_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"), onupdate=func.now())
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
-    updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+    updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"), onupdate=func.now())
 
     # Relationships
     user = relationship("User", back_populates="progress_records")

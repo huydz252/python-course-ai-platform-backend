@@ -10,6 +10,10 @@ router = APIRouter()
 @router.post("/google-login")
 def google_login(login_input: GoogleLoginInput, db: Session = Depends(get_db)):
     result = AuthService.google_login(login_input, db=db)
+    
+    # Xử lý an toàn để tránh lỗi AttributeError khi gọi .value
+    user_role = result["user"].role.value if hasattr(result["user"].role, 'value') else result["user"].role
+    
     return {
         "status": "success",
         "message": "Đăng nhập bằng Google thành công!",
@@ -18,7 +22,7 @@ def google_login(login_input: GoogleLoginInput, db: Session = Depends(get_db)):
         "user": {
             "id": result["user"].id,
             "username": result["user"].username,
-            "role": result["user"].role.value
+            "role": user_role
         }
     }
 
@@ -31,10 +35,18 @@ def register(user_data: UserRegisterInput, db: Session = Depends(get_db)):
             detail="Username hoặc Email đã được sử dụng!"
         )
         
+    # Bóc tách Model SQLAlchemy thành Dict để FastAPI serialize thành JSON mượt mà
+    user_role = saved_user.role.value if hasattr(saved_user.role, 'value') else saved_user.role
+    
     return {
         "status": "success",
         "message": "Đăng ký tài khoản thành công!",
-        "data": saved_user
+        "data": {
+            "id": saved_user.id,
+            "username": saved_user.username,
+            "email": saved_user.email,
+            "role": user_role
+        }
     }
     
 @router.post("/login")
@@ -50,6 +62,8 @@ def login(login_input: UserLoginInput, db: Session = Depends(get_db)):
             detail="Tài khoản hoặc mật khẩu không chính xác"
         )
         
+    user_role = result["user"].role.value if hasattr(result["user"].role, 'value') else result["user"].role
+        
     return {
         "status": "success",
         "message": "Đăng nhập thành công!",
@@ -61,6 +75,6 @@ def login(login_input: UserLoginInput, db: Session = Depends(get_db)):
             "email": result["user"].email,
             "fullName": result["user"].full_name,
             "avatarUrl": getattr(result["user"], "avatar_url", ""), 
-            "role": result["user"].role.value
+            "role": user_role
         }
     }

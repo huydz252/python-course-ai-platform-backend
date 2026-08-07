@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, ForeignKey, BigInteger, Integer, String, Enum, Numeric, Boolean, DateTime, Text, text
+from sqlalchemy import Column, func, ForeignKey, BigInteger, Integer, String, Enum, Numeric, Boolean, DateTime, Text, text
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -27,7 +27,7 @@ class Course(Base):
     status = Column(Enum(ContentStatus), default=ContentStatus.draft, nullable=False)
     created_by = Column(BigInteger, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
-    updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+    updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"), onupdate=func.now())
 
     # Relationships
     creator = relationship("User", back_populates="courses_created")
@@ -62,7 +62,7 @@ class Lesson(Base):
     is_free = Column(Boolean, default=False)
     status = Column(Enum(ContentStatus), default=ContentStatus.draft, nullable=False)
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
-    updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+    updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"), onupdate=func.now())
 
     course = relationship("Course", back_populates="lessons")
     section = relationship("CourseSection", back_populates="lessons")
@@ -85,7 +85,7 @@ class LessonVideo(Base):
     file_name = Column(String(255), nullable=True)
     file_size = Column(BigInteger, nullable=True)
     duration_seconds = Column(Integer, default=0)
-    processing_status = Column(Enum("pending", "processing", "completed", "failed"), default="pending")
+    processing_status = Column(Enum("pending", "processing", "completed", "failed", name="video_processing_status_enum"), default="pending")
     uploaded_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
 
     lesson = relationship("Lesson", back_populates="videos")

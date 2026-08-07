@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, ForeignKey, BigInteger, String, Enum, Integer, Float, DateTime, JSON, Text, text
+from sqlalchemy import Column, ForeignKey, BigInteger, String, Enum, Integer, Float, DateTime, JSON, Text, func, text
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from sqlalchemy.dialects.mysql import LONGTEXT
@@ -13,13 +13,13 @@ class LessonTranscript(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True)
     lesson_id = Column(BigInteger, ForeignKey("lessons.id", ondelete="CASCADE"), nullable=False)
-    transcript_text = Column(LONGTEXT, nullable=False)
+    transcript_text = Column(Text, nullable=False)
     language = Column(String(20), default="vi")
     generated_by = Column(String(100), nullable=True)
-    status = Column(Enum("pending", "processing", "completed", "failed"), default="pending")
+    status = Column(Enum("pending", "processing", "completed", "failed", name="transcript_status_enum"), default="pending")
     error_message = Column(Text, nullable=True)
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
-    updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+    updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"), onupdate=func.now())
 
     lesson = relationship("Lesson", back_populates="transcripts")
     chunks = relationship("TranscriptChunk", back_populates="transcript", cascade="all, delete-orphan")
@@ -60,7 +60,7 @@ class AIChatSession(Base):
     lesson_id = Column(BigInteger, ForeignKey("lessons.id", ondelete="SET NULL"), nullable=True)
     title = Column(String(255), nullable=False, default="Đoạn hội thoại mới")
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
-    updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+    updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"), onupdate=func.now())
 
     user = relationship("User", back_populates="chat_sessions")
     course = relationship("Course", back_populates="chat_sessions")

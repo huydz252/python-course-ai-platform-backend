@@ -30,8 +30,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex=r"https://.*\.ngrok-free\.dev",
+    allow_origins=["*"], # Tạm thời để "*" cho dễ test, sau này FE có link chính thức thì điền vào đây
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

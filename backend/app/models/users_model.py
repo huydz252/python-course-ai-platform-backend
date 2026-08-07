@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Column, ForeignKey, BigInteger, String, Enum, Boolean, DateTime, Text, text
+from sqlalchemy import Column,func, ForeignKey, BigInteger, String, Enum, Boolean, DateTime, Text, text
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -30,7 +30,7 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.student, nullable=False)
     status = Column(Enum(UserStatus), default=UserStatus.active, nullable=False)
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
-    updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+    updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"), onupdate=func.now())
 
     # Relationships
     settings = relationship("UserSettings", back_populates="user", uselist=False, cascade="all, delete-orphan")
@@ -66,6 +66,6 @@ class UserSettings(Base):
     learning_reminder_enabled = Column(Boolean, default=True)
     theme = Column(Enum(ThemeOption), default=ThemeOption.system, nullable=False)
     created_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"))
-    updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP"))
+    updated_at = Column(DateTime, server_default=text("CURRENT_TIMESTAMP"), onupdate=func.now())
 
     user = relationship("User", back_populates="settings")
