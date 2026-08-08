@@ -166,8 +166,8 @@ class AdminLessonService:
 
     @staticmethod
     def ensure_lesson_status_archived(db: Session):
-        db.execute(text("ALTER TABLE lessons MODIFY status ENUM('draft','published','hidden','archived') NOT NULL DEFAULT 'draft'"))
-        db.commit()
+       db.execute(text("ALTER TYPE contentstatus ADD VALUE IF NOT EXISTS 'archived'"))
+       db.commit()
 
     @staticmethod
     def serialize_video(video: LessonVideo):
