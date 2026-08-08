@@ -146,25 +146,22 @@ class AdminLessonService:
 
     @staticmethod
     def ensure_lesson_files_table(db: Session):
-        db.execute(
-            text(
-                """
-                CREATE TABLE IF NOT EXISTS lesson_files (
-                  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                  lesson_id BIGINT NOT NULL,
-                  file_type VARCHAR(50) NOT NULL,
-                  file_name VARCHAR(255) NOT NULL,
-                  file_url VARCHAR(500) NOT NULL,
-                  mime_type VARCHAR(100) NULL,
-                  file_size BIGINT NULL,
-                  uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                  CONSTRAINT fk_lesson_files_lessons
-                    FOREIGN KEY (lesson_id) REFERENCES lessons(id)
-                    ON DELETE CASCADE
-                )
-                """
-            )
-        )
+        sql = """
+        CREATE TABLE IF NOT EXISTS lesson_files (
+            id BIGSERIAL PRIMARY KEY,
+            lesson_id BIGINT NOT NULL,
+            file_type VARCHAR(50) NOT NULL,
+            file_name VARCHAR(255) NOT NULL,
+            file_url VARCHAR(500) NOT NULL,
+            mime_type VARCHAR(100) NULL,
+            file_size BIGINT NULL,
+            uploaded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_lesson_files_lessons
+                FOREIGN KEY (lesson_id) REFERENCES lessons(id)
+                ON DELETE CASCADE
+        );
+        """
+        db.execute(text(sql))
         db.commit()
 
     @staticmethod

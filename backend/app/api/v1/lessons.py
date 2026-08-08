@@ -41,6 +41,7 @@ def get_lesson_detail(lesson_id: int, db: Session = Depends(get_db)):
 @router.get("/{lesson_id}/resources", status_code=status.HTTP_200_OK)
 def get_lesson_resources(lesson_id: int, db: Session = Depends(get_db)):
     try:
+        print(f"Fetching resources for lesson_id: {lesson_id}")
         resources = LessonService.get_lesson_resources(db, lesson_id)
     except HTTPException as exc:
         return lesson_error_response(exc)

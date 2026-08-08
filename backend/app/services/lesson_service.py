@@ -50,9 +50,18 @@ class LessonService:
             "status": "available",
         }
 
+    from fastapi import HTTPException, status
+
     @staticmethod
     def get_lesson_resources(db: Session, lesson_id: int):
+        # 1. Bắt case không tìm thấy Lesson
         lesson = LessonService.get_lesson_by_id(db, lesson_id)
+        if not lesson:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, 
+                detail=f"Lesson with id {lesson_id} not found"
+            )
+
         LessonService.ensure_lesson_files_table(db)
 
         video = (
@@ -84,7 +93,8 @@ class LessonService:
             "lessonId": int(lesson.id),
             "video": LessonService.serialize_video(video) if video else None,
             "slideFile": LessonService.serialize_slide_file(slide_file) if slide_file else None,
-            "transcript": TranscriptService.serialize_transcript(transcript, int(lesson.id)),
+            # 2. Thêm "if transcript else None" chuẩn chỉ như các trường khác
+            "transcript": TranscriptService.serialize_transcript(transcript, int(lesson.id)) if transcript else None,
             "summary": LessonService.serialize_summary(summary) if summary else None,
         }
 
@@ -176,23 +186,20 @@ class LessonService:
 
     @staticmethod
     def ensure_lesson_files_table(db: Session):
-        db.execute(
-            text(
-                """
-                CREATE TABLE IF NOT EXISTS lesson_files (
-                  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                  lesson_id BIGINT NOT NULL,
-                  file_type VARCHAR(50) NOT NULL,
-                  file_name VARCHAR(255) NOT NULL,
-                  file_url VARCHAR(500) NOT NULL,
-                  mime_type VARCHAR(100) NULL,
-                  file_size BIGINT NULL,
-                  uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                  CONSTRAINT fk_lesson_files_lessons
-                    FOREIGN KEY (lesson_id) REFERENCES lessons(id)
-                    ON DELETE CASCADE
-                )
-                """
-            )
-        )
+        sql = """
+        CREATE TABLE IF NOT EXISTS lesson_files (
+            id BIGSERIAL PRIMARY KEY,
+            lesson_id BIGINT NOT NULL,
+            file_type VARCHAR(50) NOT NULL,
+            file_name VARCHAR(255) NOT NULL,
+            file_url VARCHAR(500) NOT NULL,
+            mime_type VARCHAR(100) NULL,
+            file_size BIGINT NULL,
+            uploaded_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_lesson_files_lessons
+                FOREIGN KEY (lesson_id) REFERENCES lessons(id)
+                ON DELETE CASCADE
+        );
+        """
+        db.execute(text(sql))
         db.commit()
