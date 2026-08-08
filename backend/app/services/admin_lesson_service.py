@@ -150,17 +150,17 @@ class AdminLessonService:
             text(
                 """
                 CREATE TABLE IF NOT EXISTS lesson_files (
-                  id BIGINT AUTO_INCREMENT PRIMARY KEY,
-                  lesson_id BIGINT NOT NULL,
-                  file_type VARCHAR(50) NOT NULL,
-                  file_name VARCHAR(255) NOT NULL,
-                  file_url VARCHAR(500) NOT NULL,
-                  mime_type VARCHAR(100) NULL,
-                  file_size BIGINT NULL,
-                  uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                  CONSTRAINT fk_lesson_files_lessons
-                    FOREIGN KEY (lesson_id) REFERENCES lessons(id)
-                    ON DELETE CASCADE
+                id BIGSERIAL PRIMARY KEY,
+                lesson_id BIGINT NOT NULL,
+                file_type VARCHAR(50) NOT NULL,
+                file_name VARCHAR(255) NOT NULL,
+                file_url VARCHAR(500) NOT NULL,
+                mime_type VARCHAR(100) NULL,
+                file_size BIGINT NULL,
+                uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_lesson_files_lessons
+                 FOREIGN KEY (lesson_id) REFERENCES lessons(id)
+                 ON DELETE CASCADE
                 )
                 """
             )
@@ -169,8 +169,8 @@ class AdminLessonService:
 
     @staticmethod
     def ensure_lesson_status_archived(db: Session):
-        db.execute(text("ALTER TABLE lessons MODIFY status ENUM('draft','published','hidden','archived') NOT NULL DEFAULT 'draft'"))
-        db.commit()
+       db.execute(text("ALTER TYPE contentstatus ADD VALUE IF NOT EXISTS 'archived'"))
+       db.commit()
 
     @staticmethod
     def serialize_video(video: LessonVideo):

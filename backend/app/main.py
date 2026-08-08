@@ -17,6 +17,7 @@ from app.api.v1.admin_courses import router as admin_courses_router
 from app.api.v1.admin_students import router as admin_students_router
 from app.api.v1.admin_videos import router as admin_videos_router
 from app.api.v1.admin_uploads import router as admin_uploads_router
+from app.api.v1.admin_dashboard import router as admin_dashboard_router
 from app.api.v1.chatbot import router as chatbot_router
 
 app = FastAPI(title="Python Course AI Platform")
@@ -46,6 +47,7 @@ app.include_router(admin_students_router, prefix="/api/v1/admin/students", tags=
 app.include_router(admin_videos_router, prefix="/api/v1/admin/videos", tags=["Admin - Videos"])
 app.include_router(admin_uploads_router, prefix="/api/v1/admin/upload", tags=["Admin - Upload"])
 app.include_router(admin_courses_router, prefix="/api/v1/admin/courses", tags=["Admin - Courses"])
+app.include_router(admin_dashboard_router, prefix="/api/v1/admin/dashboard", tags=["Admin - Dashboard"])
 
 app.include_router(users_router, prefix="/api/v1/users", tags=["Users"])
 app.include_router(progress_router, prefix="/api/v1/my", tags=["Progress"])
