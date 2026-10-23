@@ -19,6 +19,7 @@ from app.api.v1.admin_videos import router as admin_videos_router
 from app.api.v1.admin_uploads import router as admin_uploads_router
 from app.api.v1.admin_dashboard import router as admin_dashboard_router
 from app.api.v1.chatbot import router as chatbot_router
+from app.api.v1.quizzes import router as quizzes_router
 
 app = FastAPI(title="Python Course AI Platform")
 
@@ -58,6 +59,7 @@ app.include_router(progress_router, prefix="/api/v1/my", tags=["Progress"])
 app.include_router(activities_router, prefix="/api/v1/profile", tags=["Activities"])
 
 app.include_router(chatbot_router, prefix="/api/v1/chatbot", tags=["AI Assistant"])
+app.include_router(quizzes_router, prefix="/api/v1", tags=["Quizzes"])
 
 uploads_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "storage", "uploads")
 os.makedirs(uploads_dir, exist_ok=True)
