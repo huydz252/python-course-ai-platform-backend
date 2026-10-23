@@ -27,11 +27,14 @@ origins = [
     "http://127.0.0.1:5173",
     "http://localhost:5174",
     "http://127.0.0.1:5174",
+    "https://python-course-ai-platform-1.onrender.com",
+    "https://python-course-ai-platform.onrender.com",
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"https://.*\.onrender\.com", 
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
